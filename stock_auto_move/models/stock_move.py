@@ -15,7 +15,11 @@ class StockMove(models.Model):
 
     def _auto_assign_quantities(self):
         for move in self:
-            move.quantity_done = move.reserved_availability
+            if move.move_lines_count > 1:
+                for ml in move.move_line_ids:
+                    ml.qty_done = ml.product_uom_qty
+            else:
+                move.quantity_done = move.reserved_availability
 
     def _action_assign(self):
         res = super()._action_assign()
@@ -28,10 +32,10 @@ class StockMove(models.Model):
             # In case of no backorder on the first move and cancel propagation
             # we need to propagate cancel_backorder to action_done
             moves._action_done(
-                cancel_backorder=self.env.context.get("cancel_backorder", False)
+                cancel_backorder=True
             )
             # We need to create backorder if there are mixed moves (auto and manual)
-            moves.mapped("picking_id")._create_backorder()
+            # moves.mapped("picking_id")._create_backorder()
         return res
 
     @api.model
